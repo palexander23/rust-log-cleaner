@@ -1,7 +1,7 @@
-use core::panic;
 use std::fs::{File, OpenOptions};
 use std::io::{prelude::*, BufReader, BufWriter};
 use std::path::Path;
+use std::process;
 
 /// The function containing the script functionality
 pub fn run_script(
@@ -17,10 +17,10 @@ pub fn run_script(
     let input_path_display = input_path.display();
 
     // Open the input file
-    let input_file = match File::open(&input_path) {
-        Err(why) => panic!("Couldn't open {}: {}", input_path_display, why),
-        Ok(file) => file,
-    };
+    let input_file = File::open(&input_path).unwrap_or_else(|err| {
+        eprintln!("Couldn't open input file {}: {}", input_path_display, err);
+        process::exit(1);
+    });
 
     // Read the input list file into a vector of Strings
     let input_reader = BufReader::new(input_file);
@@ -29,11 +29,17 @@ pub fn run_script(
     // Process the string
     let output_lines = process_input_lines(&input_lines, deliminator_list_str);
 
-    // Write hte output lines
-    match write_output(output_path, output_lines) {
-        Err(e) => panic!("Could not open output file: {}", e),
-        _ => (),
-    };
+    // Write the output lines
+    write_output(output_path, output_lines).unwrap_or_else(|err| {
+        eprintln!("Couldn't open output file {}: {}", input_path_display, err);
+        process::exit(1);
+    });
+
+    // Declare program success
+    println!(
+        "Formatted CSV data successfully written to {}",
+        output_path_str
+    );
 }
 
 fn process_input_lines(input_lines: &Vec<String>, deliminator_list_str: &String) -> Vec<String> {
